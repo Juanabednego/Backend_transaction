@@ -4,8 +4,11 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "install-cors": "npm install cors",
     "start": "node server.js",
+    "setup": "npm install && npm run seed",
     "dev": "nodemon server.js",
+    "seed": "node -e \"require('./utils/seeder').seedAll()\"",
     "test-db": "node scripts/test-connection.js"
   },
   "keywords": [],
@@ -13,8 +16,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "midtrans-client": "^1.4.3",
     "mongodb-memory-server": "^10.3.0",
     "mongoose": "^8.19.4",
     "node-cron": "^4.2.1"
