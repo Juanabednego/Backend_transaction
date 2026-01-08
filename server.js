@@ -11,7 +11,7 @@ const Transaction = require('./models/Transaction');
 const cron = require('node-cron');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // Connect to database with fallback
 connectDB().then(() => {
@@ -86,7 +86,8 @@ app.post('/api/create-transaction', async (req, res) => {
     }
 
     // Generate URL untuk redirect ke payment page
-    let paymentUrl = `http://localhost:5173/payment?order_id=${order_id}&amount=${amount}&from_web=true`;
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5173';
+    let paymentUrl = `${baseUrl}/payment?order_id=${order_id}&amount=${amount}&from_web=true`;
     
     // Add user_id to URL if provided
     if (user_id) {
@@ -243,6 +244,6 @@ app.get('/api/debug/all-transactions', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });

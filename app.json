@@ -1,0 +1,15 @@
+{
+  "name": "backend_sistem_transaksi",
+  "version": "1.0.0",
+  "description": "Backend sistem transaksi dengan Midtrans integration",
+  "main": "server.js",
+  "engines": {
+    "node": "22.x",
+    "npm": ">=8.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo 'No build step required'",
+    "postinstall": "echo 'Installation complete'"
+  }
+}
