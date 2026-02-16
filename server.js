@@ -77,7 +77,7 @@ app.get('/api/health', (req, res) => {
 app.post('/api/create-transaction', async (req, res) => {
   try {
     const { order_id, amount, customer_details, item_details, user_id } = req.body;
-    
+
     if (!order_id || !amount) {
       return res.status(400).json({
         success: false,
@@ -88,7 +88,7 @@ app.post('/api/create-transaction', async (req, res) => {
     // Generate URL untuk redirect ke payment page
     const baseUrl = process.env.BASE_URL || 'http://localhost:5173';
     let paymentUrl = `${baseUrl}/payment?order_id=${order_id}&amount=${amount}&from_web=true`;
-    
+
     // Add user_id to URL if provided
     if (user_id) {
       paymentUrl += `&user_id=${user_id}`;
@@ -127,7 +127,7 @@ app.get('/api/transaction/:order_id', async (req, res) => {
   try {
     const { order_id } = req.params;
     const transaction = await Transaction.findOne({ order_id });
-    
+
     if (!transaction) {
       return res.status(404).json({
         success: false,
@@ -177,7 +177,7 @@ app.get('/api/debug/transaction/:order_id', async (req, res) => {
   try {
     const { order_id } = req.params;
     const transaction = await Transaction.findOne({ order_id }).populate('user_id', 'username email full_name phone');
-    
+
     if (!transaction) {
       return res.status(404).json({
         success: false,
@@ -217,7 +217,7 @@ app.get('/api/debug/all-transactions', async (req, res) => {
       .populate('user_id', 'username email full_name phone')
       .sort({ createdAt: -1 })
       .limit(10);
-    
+
     const formattedTransactions = transactions.map(tx => ({
       order_id: tx.order_id,
       user_id: tx.user_id?._id || null,
@@ -231,7 +231,7 @@ app.get('/api/debug/all-transactions', async (req, res) => {
       status: tx.status,
       createdAt: tx.createdAt
     }));
-    
+
     res.json({
       success: true,
       data: formattedTransactions
@@ -244,6 +244,4 @@ app.get('/api/debug/all-transactions', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(process.env.PORT);
