@@ -11,7 +11,7 @@ const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware global
 app.use(cors({ origin: '*' })); // untuk test, nanti bisa restrict origin
