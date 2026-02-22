@@ -90,17 +90,31 @@ const selectMerchantAccount = async (amount) => {
 const getAccountUtilization = async () => {
   try {
     const accounts = await Account.find({ is_active: true }).sort({ priority: 1 });
-    
+
+    // Kalau tidak ada account, return array kosong atau default object
+    if (accounts.length === 0) {
+      return [{
+        pg_merchant_id: 'N/A',
+        name: 'No Active Account',
+        priority: 0,
+        limit_max: 0,
+        limit_used: 0,
+        remaining_limit: 0,
+        status: 'normal'
+      }];
+    }
+
     return accounts.map(acc => {
-      const limitMax = parseFloat(acc.limit_max.$numberDecimal || acc.limit_max);
-      const limitUsed = parseFloat(acc.limit_used.$numberDecimal || acc.limit_used);
+      // Pastikan field selalu ada & aman
+      const limitMax = parseFloat(acc.limit_max?.$numberDecimal || acc.limit_max || 0);
+      const limitUsed = parseFloat(acc.limit_used?.$numberDecimal || acc.limit_used || 0);
       const remainingLimit = limitMax - limitUsed;
-      const utilizationPercent = (limitUsed / limitMax) * 100;
-      
+      const utilizationPercent = limitMax > 0 ? (limitUsed / limitMax) * 100 : 0;
+
       return {
-        pg_merchant_id: acc.pg_merchant_id,
-        name: acc.name,
-        priority: acc.priority,
+        pg_merchant_id: acc.pg_merchant_id || 'N/A',
+        name: acc.name || 'Unnamed',
+        priority: acc.priority || 0,
         limit_max: limitMax,
         limit_used: limitUsed,
         remaining_limit: remainingLimit,
@@ -109,6 +123,7 @@ const getAccountUtilization = async () => {
       };
     });
   } catch (error) {
+    console.error('Error getAccountUtilization:', error);
     throw error;
   }
 };
