@@ -118,7 +118,6 @@ const getAccountUtilization = async () => {
         limit_max: limitMax,
         limit_used: limitUsed,
         remaining_limit: remainingLimit,
-        utilization_percent: utilizationPercent.toFixed(2),
         status: utilizationPercent >= 90 ? 'critical' : utilizationPercent >= 70 ? 'warning' : 'normal'
       };
     });
