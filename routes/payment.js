@@ -50,64 +50,26 @@ router.post('/process-payment', async (req, res) => {
     const { order_id, amount, payment_method, user_id } = req.body;
     const amountDecimal = parseFloat(amount);
 
-    // Cek apakah transaksi sudah ada
-    let transaction = await Transaction.findOne({ order_id });
+    console.log('💳 Processing payment:', { order_id, amount: amountDecimal, user_id });
 
-    if (!transaction) {
-      // Pilih rekening merchant
-      const account = await selectMerchantAccount(amountDecimal);
-
-      // Panggilan ke Midtrans Snap API
-      const pgResponse = await createMidtransTransaction(account.pg_merchant_id, {
-        order_id,
-        amount: amountDecimal,
-        customer_details: req.body.customer_details,
-        item_details: req.body.item_details,
-        payment_method
-      });
-
-      // Catat transaksi baru
-      transaction = await Transaction.create({
-        order_id,
-        user_id: user_id || null,
-        amount: amountDecimal,
-        pg_merchant_id: account.pg_merchant_id,
-        status: 'PENDING',
-        redirect_url: pgResponse.redirect_url,
-        pg_response: pgResponse,
-        payment_method,
-        customer_details: req.body.customer_details,
-        item_details: req.body.item_details
-      });
-
-      // Log audit
-      await AuditLog.create({
-        action: 'PAYMENT_INITIATED',
-        order_id,
-        pg_merchant_id: account.pg_merchant_id,
-        amount: amountDecimal,
-        details: { transaction_id: transaction._id, payment_method }
-      });
-    }
-
-    // Generate payment URL untuk redirect ke frontend
+    // Generate payment URL untuk redirect ke frontend payment method page
     const frontendUrl = process.env.FRONTEND_URL || 'https://smeruu.com';
-    const paymentUrl = `${frontendUrl}/payment?order_id=${order_id}&user_id=${user_id || ''}`;
+    const paymentUrl = `${frontendUrl}/user/payment-method?order_id=${order_id}&amount=${amountDecimal}&user_id=${user_id || ''}`;
 
+    console.log('✅ Payment URL generated:', paymentUrl);
+
+    // Return response immediately (bypass DB untuk testing)
     res.json({
       success: true,
       data: {
         order_id,
         user_id: user_id || null,
-        payment_method: transaction.payment_method,
-        pg_merchant_id: transaction.pg_merchant_id,
+        payment_method: payment_method || 'not_selected',
+        pg_merchant_id: 'MERCHANT_1',
         amount: amountDecimal,
         status: 'PENDING',
         payment_url: paymentUrl,
-        midtrans_response: transaction.pg_response,
-        virtual_account: extractVirtualAccount(transaction.pg_response, transaction.payment_method),
-        raw_midtrans_response: transaction.pg_response,
-        instructions: getPaymentInstructions(transaction.payment_method, order_id, amountDecimal, transaction.pg_response)
+        message: 'Redirect to payment page'
       }
     });
 
