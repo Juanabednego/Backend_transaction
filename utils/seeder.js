@@ -10,6 +10,8 @@ const seedAccounts = async () => {
       {
         pg_merchant_id: 'MERCHANT_001',
         name: 'Primary Gateway',
+        server_key: 'SB-Mid-server-xxx',
+        client_key: 'SB-Mid-client-xxx',
         limit_max: 10000000,
         limit_used: 2500000,
         priority: 1,
@@ -18,6 +20,8 @@ const seedAccounts = async () => {
       {
         pg_merchant_id: 'MERCHANT_002',
         name: 'Secondary Gateway',
+        server_key: 'SB-Mid-server-yyy',
+        client_key: 'SB-Mid-client-yyy',
         limit_max: 5000000,
         limit_used: 1200000,
         priority: 2,

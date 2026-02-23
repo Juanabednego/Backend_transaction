@@ -10,6 +10,14 @@ const accountSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  server_key: {
+    type: String,
+    required: false
+  },
+  client_key: {
+    type: String,
+    required: false
+  },
   limit_max: {
     type: mongoose.Schema.Types.Decimal128,
     required: true

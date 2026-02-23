@@ -9,12 +9,12 @@ const { createMidtransTransaction, validateMidtransNotification } = require('../
 
 const extractVirtualAccount = (midtransResponse, paymentMethod) => {
   if (!midtransResponse) return null;
-  
+
   console.log('Extracting VA for method:', paymentMethod);
   console.log('Midtrans response:', JSON.stringify(midtransResponse, null, 2));
-  
+
   // Extract VA number based on payment method
-  switch(paymentMethod) {
+  switch (paymentMethod) {
     case 'bca_va':
       return midtransResponse.va_numbers?.[0]?.va_number || midtransResponse.bca_va_number;
     case 'bni_va':
@@ -49,10 +49,10 @@ router.post('/process-payment', async (req, res) => {
   try {
     const { order_id, amount, payment_method, user_id } = req.body;
     const amountDecimal = parseFloat(amount);
-    
+
     // Cek apakah transaksi sudah ada
     let transaction = await Transaction.findOne({ order_id });
-    
+
     if (!transaction) {
       // Pilih rekening merchant
       const account = await selectMerchantAccount(amountDecimal);
@@ -90,14 +90,20 @@ router.post('/process-payment', async (req, res) => {
       });
     }
 
+    // Generate payment URL untuk redirect ke frontend
+    const frontendUrl = process.env.FRONTEND_URL || 'https://smeruu.com';
+    const paymentUrl = `${frontendUrl}/payment?order_id=${order_id}&user_id=${user_id || ''}`;
+
     res.json({
       success: true,
       data: {
         order_id,
+        user_id: user_id || null,
         payment_method: transaction.payment_method,
         pg_merchant_id: transaction.pg_merchant_id,
         amount: amountDecimal,
         status: 'PENDING',
+        payment_url: paymentUrl,
         midtrans_response: transaction.pg_response,
         virtual_account: extractVirtualAccount(transaction.pg_response, transaction.payment_method),
         raw_midtrans_response: transaction.pg_response,
@@ -119,7 +125,7 @@ router.get('/transaction-status/:order_id', async (req, res) => {
   try {
     const { order_id } = req.params;
     const transaction = await Transaction.findOne({ order_id });
-    
+
     if (!transaction) {
       return res.status(404).json({
         success: false,
@@ -150,9 +156,9 @@ router.get('/transaction-status/:order_id', async (req, res) => {
 router.post('/update-user-id', async (req, res) => {
   try {
     const { order_id, user_id } = req.body;
-    
+
     console.log(`Updating user_id for transaction: ${order_id} -> ${user_id}`);
-    
+
     const transaction = await Transaction.findOneAndUpdate(
       { order_id },
       { user_id: user_id || null, updatedAt: new Date() },
@@ -186,9 +192,9 @@ router.post('/update-user-id', async (req, res) => {
 router.post('/update-status', async (req, res) => {
   try {
     const { order_id, status } = req.body;
-    
+
     console.log(`Manual status update: ${order_id} -> ${status}`);
-    
+
     const transaction = await Transaction.findOneAndUpdate(
       { order_id },
       { status, updatedAt: new Date() },
@@ -205,7 +211,7 @@ router.post('/update-status', async (req, res) => {
     // Update limit if SUCCESS
     if (status === 'SUCCESS') {
       const amountValue = parseFloat(transaction.amount.$numberDecimal || transaction.amount);
-      
+
       await Account.updateOne(
         { pg_merchant_id: transaction.pg_merchant_id },
         { $inc: { limit_used: amountValue } }
@@ -217,7 +223,7 @@ router.post('/update-status', async (req, res) => {
         order_id,
         pg_merchant_id: transaction.pg_merchant_id,
         amount: amountValue,
-        details: { 
+        details: {
           manual_update: true,
           payment_method: transaction.payment_method
         }
@@ -245,7 +251,7 @@ router.post('/sync-status/:order_id', async (req, res) => {
   try {
     const { order_id } = req.params;
     const { syncTransactionStatus } = require('../utils/statusSync');
-    
+
     // Get transaction to find merchant ID
     const transaction = await Transaction.findOne({ order_id });
     if (!transaction) {
@@ -254,10 +260,10 @@ router.post('/sync-status/:order_id', async (req, res) => {
         message: 'Transaction not found'
       });
     }
-    
+
     // Sync with Midtrans
     const result = await syncTransactionStatus(order_id, transaction.pg_merchant_id);
-    
+
     res.json({
       success: result.success,
       message: result.success ? 'Status synced successfully' : 'Sync failed',
@@ -276,10 +282,10 @@ router.post('/sync-status/:order_id', async (req, res) => {
 router.post('/sync-all-pending', async (req, res) => {
   try {
     const { syncAllPendingTransactions } = require('../utils/statusSync');
-    
+
     // Run sync in background
     syncAllPendingTransactions();
-    
+
     res.json({
       success: true,
       message: 'Auto sync started for all pending transactions'
@@ -297,14 +303,14 @@ router.post('/pg-callback', async (req, res) => {
   try {
     console.log('=== MIDTRANS CALLBACK RECEIVED ===');
     console.log('Full callback data:', JSON.stringify(req.body, null, 2));
-    
+
     const { order_id, transaction_status, fraud_status } = req.body;
-    
+
     if (!order_id) {
       console.log('ERROR: No order_id in callback');
       return res.status(400).json({ success: false, message: 'No order_id' });
     }
-    
+
     // Tentukan status berdasarkan response Midtrans
     let status = 'PENDING';
     if (transaction_status === 'capture' || transaction_status === 'settlement') {
@@ -318,7 +324,7 @@ router.post('/pg-callback', async (req, res) => {
     // Update status transaksi
     const transaction = await Transaction.findOneAndUpdate(
       { order_id },
-      { 
+      {
         status,
         pg_response: req.body,
         updatedAt: new Date()
@@ -339,7 +345,7 @@ router.post('/pg-callback', async (req, res) => {
     // Jika transaksi sukses, update limit
     if (status === 'SUCCESS') {
       const amountValue = parseFloat(transaction.amount.$numberDecimal || transaction.amount);
-      
+
       await Account.updateOne(
         { pg_merchant_id: transaction.pg_merchant_id },
         { $inc: { limit_used: amountValue } }
@@ -353,7 +359,7 @@ router.post('/pg-callback', async (req, res) => {
         order_id,
         pg_merchant_id: transaction.pg_merchant_id,
         amount: amountValue,
-        details: { 
+        details: {
           transaction_status,
           fraud_status,
           payment_method: transaction.payment_method,

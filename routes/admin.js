@@ -14,6 +14,52 @@ router.get('/accounts', async (req, res) => {
   }
 });
 
+// Create new account
+router.post('/accounts', async (req, res) => {
+  try {
+    const { pg_merchant_id, name, server_key, client_key, limit_max, priority, is_active } = req.body;
+    
+    // Validasi
+    if (!pg_merchant_id || !name || !limit_max || !priority) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'pg_merchant_id, name, limit_max, and priority are required' 
+      });
+    }
+
+    // Cek duplikat
+    const existing = await Account.findOne({ pg_merchant_id });
+    if (existing) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Account with this merchant ID already exists' 
+      });
+    }
+
+    const account = await Account.create({
+      pg_merchant_id,
+      name,
+      server_key,
+      client_key,
+      limit_max,
+      limit_used: 0,
+      priority,
+      is_active: is_active !== undefined ? is_active : true
+    });
+
+    // Log audit
+    await AuditLog.create({
+      action: 'ACCOUNT_CREATED',
+      pg_merchant_id: account.pg_merchant_id,
+      details: { account_name: account.name }
+    });
+
+    res.status(201).json({ success: true, data: account });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Update account (untuk mengganti payment gateway)
 router.put('/accounts/:id', async (req, res) => {
   try {
